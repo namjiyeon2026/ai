@@ -73,6 +73,7 @@
         border-radius: 12px 12px 0 0;
         overflow: hidden;
         box-shadow: inset 0 -4px 12px rgba(0, 0, 0, 0.05);
+        position: relative;
       }
 
       iframe {
@@ -81,6 +82,22 @@
         border: none;
         display: block;
       }
+
+      .iframe-fallback {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(245,247,250,0.95);
+        text-align: center;
+        gap: 12px;
+        flex-direction: column;
+      }
+
+      .iframe-fallback p { color: #333; }
+      .iframe-fallback a { color: #3b82f6; text-decoration: underline; }
 
       /* 반응형 디자인 */
       @media (max-width: 768px) {
@@ -128,13 +145,66 @@
       
       <main class="content">
         <div class="iframe-wrapper">
-          <iframe 
-            src="https://copilotstudio.microsoft.com/environments/9324e73a-cd4e-e049-b7ba-177af6165e9c/bots/cr470_aimulti_[...]"
-            title="AI Chat Bot"
-            allow="microphone; camera">
+          <!--
+            IMPORTANT: Replace the placeholder below with the full Copilot Studio bot URL.
+            Example: https://copilotstudio.microsoft.com/environments/<env-id>/bots/<bot-id>?share=public
+          -->
+          <iframe id="botFrame"
+                  src=""
+                  title="AI Chat Bot"
+                  allow="microphone; camera; autoplay;"
+                  sandbox="allow-scripts allow-forms allow-same-origin allow-popups">
           </iframe>
+
+          <div id="iframeFallback" class="iframe-fallback" style="display:none;">
+            <p style="font-weight:600;">봇을 불러올 수 없습니다.</p>
+            <p>임베드가 차단되었거나 올바르지 않은 URL 때문에 로드되지 않습니다. 아래 버튼으로 새 탭에서 열어보세요.</p>
+            <div>
+              <a id="botLink" href="#" target="_blank" rel="noopener noreferrer">Open AI Chat Bot in a new tab</a>
+            </div>
+            <p style="color:#666; font-size:13px;">(브라우저 콘솔의 에러: X-Frame-Options, CSP 또는 인증 문제일 수 있습니다.)</p>
+          </div>
         </div>
       </main>
     </div>
+
+    <script>
+      // Put the full Copilot Studio bot URL here.
+      // Replace the placeholder string below with the complete URL you get from Copilot Studio (don't leave the "[...]" part).
+      const botUrl = "https://copilotstudio.microsoft.com/environments/9324e73a-cd4e-e049-b7ba-177af6165e9c/bots/PUT_YOUR_FULL_BOT_PATH_HERE";
+
+      const iframe = document.getElementById('botFrame');
+      const fallback = document.getElementById('iframeFallback');
+      const botLink = document.getElementById('botLink');
+
+      botLink.href = botUrl;
+
+      // Attempt to set src programmatically so the placeholder is obvious in the file.
+      // If botUrl still contains 'PUT_YOUR_FULL_BOT_PATH_HERE' the iframe won't be loaded; update the URL.
+      if (botUrl && !botUrl.includes('PUT_YOUR_FULL_BOT_PATH_HERE')) {
+        iframe.src = botUrl;
+      } else {
+        console.warn('Bot URL is a placeholder. Please replace botUrl in index.html with the full Copilot Studio embed URL.');
+        // show fallback immediately if placeholder remains
+        fallback.style.display = 'block';
+      }
+
+      // onload may still fire even when the content is an error page; use a timeout to detect likely blocking.
+      let loaded = false;
+      iframe.addEventListener('load', () => {
+        loaded = true;
+        // If the frame loaded something but later we can't communicate due to cross-origin or blocked frame,
+        // user should still be able to interact if Copilot Studio allows embedding.
+        fallback.style.display = 'none';
+      });
+
+      // If load doesn't happen within 6s, show fallback. This covers X-Frame-Options/CSP blocking where onload may not fire.
+      setTimeout(() => {
+        if (!loaded) {
+          fallback.style.display = 'block';
+          console.info('Iframe did not finish loading within timeout — showing fallback link. Check browser console for X-Frame-Options/CSP or network errors.');
+        }
+      }, 6000);
+    </script>
   </body>
 </html>
